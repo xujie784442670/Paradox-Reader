@@ -95,16 +95,23 @@ namespace ParadoxReader
 
         private readonly Stream stream;
         private readonly BinaryReader reader;
+        private readonly Encoding encoding;
 
-        public ParadoxFile(string fileName) : this(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+        public ParadoxFile(string fileName) : this(fileName, Encoding.Default)
         {
         }
 
-        public ParadoxFile(Stream stream)
+        public ParadoxFile(string fileName, Encoding encoding) : 
+            this(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite), encoding)
+        {
+        }
+
+        public ParadoxFile(Stream stream,Encoding encoding)
         {
             this.stream = stream;
-            this.reader = new BinaryReader(stream);
+            this.reader = new BinaryReader(stream, encoding);
             stream.Position = 0;
+            this.encoding = encoding;
             this.ReadHeader();
         }
 
@@ -238,7 +245,7 @@ namespace ParadoxReader
             int stringLength = Array.FindIndex(data, from, b => b == 0) - from;
             if (stringLength > maxLength)
                 stringLength = maxLength;
-            return Encoding.Default.GetString(data, from, stringLength);
+            return encoding.GetString(data, from, stringLength);
         }
 
         public string GetStringFromMemo(byte[] data, int from, int size)
@@ -351,7 +358,11 @@ namespace ParadoxReader
         public readonly ParadoxPrimaryKey PrimaryKeyIndex;
         private readonly ParadoxBlobFile BlobFile;
 
-        public ParadoxTable(string dbPath, string tableName) : base(Path.Combine(dbPath, tableName + ".db"))
+        public ParadoxTable(string dbPath, string tableName) : this(dbPath, tableName, Encoding.Default)
+        {
+        }
+
+        public ParadoxTable(string dbPath, string tableName,Encoding encoding) : base(Path.Combine(dbPath, tableName + ".db"), encoding)
         {
             var files = Directory.GetFiles(dbPath, tableName + "*.*");
             foreach (var file in files)
@@ -366,7 +377,7 @@ namespace ParadoxReader
                 if (Path.GetFileNameWithoutExtension(file).EndsWith(".MB", StringComparison.InvariantCultureIgnoreCase) ||
                     Path.GetExtension(file).Equals(".MB", StringComparison.InvariantCultureIgnoreCase))
                 {
-                    this.BlobFile = new ParadoxBlobFile(file);
+                    this.BlobFile = new ParadoxBlobFile(file, encoding);
                 }
             }
         }
@@ -534,14 +545,19 @@ namespace ParadoxReader
         private readonly BinaryReader reader;
 
         public ParadoxBlobFile(string fileName)
-            : this(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            : this(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite), Encoding.Default)
         {
         }
 
-        public ParadoxBlobFile(Stream stream)
+        public ParadoxBlobFile(string fileName, Encoding encoding)
+            : this(new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite), encoding)
+        {
+        }
+
+        public ParadoxBlobFile(Stream stream,Encoding encoding)
         {
             this.stream = stream;
-            this.reader = new BinaryReader(stream);
+            this.reader = new BinaryReader(stream, encoding);
         }
 
         public virtual void Dispose()
